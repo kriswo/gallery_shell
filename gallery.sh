@@ -8,8 +8,8 @@
 #### Configuration Section
 #########################################################################################
 
-height_small=187
-height_large=768
+width_small=234
+width_large=768
 quality=85
 thumbdir=__thumbs
 htmlfile=index.html
@@ -73,9 +73,9 @@ command -v $exif >/dev/null 2>&1 || { echo >&2 "!!! $exif it's not installed.  A
 ### Create Folders
 [[ -d $thumbdir ]] || mkdir $thumbdir || exit 2
 
-heights[0]=$height_small
-heights[1]=$height_large
-for res in ${heights[*]}; do
+widths[0]=$width_small
+widths[1]=$width_large
+for res in ${widths[*]}; do
 	[[ -d $thumbdir/$res ]] || mkdir -p $thumbdir/$res || exit 3
 done
 
@@ -90,6 +90,16 @@ cat > "$htmlfile" << EOF
 	<meta name="viewport" content="width=device-width">
 	<meta name="robots" content="noindex, nofollow">
 	<link rel="stylesheet" href="$stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.1/isotope.pkgd.js"></script>
+	<script language="javascript">
+\$(document).ready(function() {
+	doIsotope();
+});
+function doIsotope() {
+	\$("#imageHolder").isotope({itemSelector: '.imgentry'});
+}
+	</script>
 </head>
 <body>
 <div class="container">
@@ -103,26 +113,24 @@ EOF
 ### Photos (JPG)
 if [[ $(find . -type f -name \*.jpg -maxdepth 1 | wc -l) -gt 0 ]]; then
 
-echo '<div class="row">' >> "$htmlfile"
+echo '<div id="imageHolder" class="row">' >> "$htmlfile"
 ## Generate Images
 numfiles=0
 for filename in *.[jJ][pP][gG]; do
 	debug && echo -n "+ $filename: "
 	filelist[$numfiles]=$filename
 	let numfiles++
-	for res in ${heights[*]}; do
+	for res in ${widths[*]}; do
 		debug && echo -n "$thumbdir/$res "
 		if [[ ! -s $thumbdir/$res/$filename ]]; then
-			$convert -auto-orient -strip -quality $quality -resize x$res "$filename" "$thumbdir/$res/$filename"
+			$convert -auto-orient -strip -quality $quality -resize "$res"x "$filename" "$thumbdir/$res/$filename"
 		fi
 	done
+
 	debug && echo
 	cat >> "$htmlfile" << EOF
-<div class="col-md-3 col-sm-12">
-	<p>
-		<a href="$thumbdir/$filename.html"><img src="$thumbdir/$height_small/$filename" alt="" class="img-responsive"></a>
-		<div class="hidden-md hidden-lg"><hr></div>
-	</p>
+<div class="imgentry" style="width:${width_small}px;">
+		<a href="$thumbdir/$filename.html"><img onload="doIsotope();" src="$thumbdir/$width_small/$filename" alt="" style="width:${width_small}px" class="img-responsive"></a>
 </div>
 EOF
 [[ $(( $numfiles % 4 )) -eq 0 ]] && echo '<div class="clearfix visible-md visible-lg"></div>' >> "$htmlfile"
@@ -167,7 +175,7 @@ EOF
 	cat >> "$imagehtmlfile" << EOF
 <div class="row">
 	<div class="col-xs-12">
-		<p><img src="$height_large/$filename" class="img-responsive" alt=""></p>
+		<p><img src="$width_large/$filename" class="img-responsive" alt=""></p>
 	</div>
 </div>
 <div class="row">
